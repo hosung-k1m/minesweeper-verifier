@@ -9,6 +9,10 @@ function play(value, {verdict, send}) {
   if (!verdict || !verdict.valid) return h('p', {text: verdict?.message || 'Game verification is unavailable.'});
   const state = game(verdict.details.mines, verdict.details.opening);
   const root = h('section');
+  function compareRound() {
+    const args = {game_id: value.game_id, history: state.moves};
+    send(`Run compare-scores with ${JSON.stringify(args)}. Copy these arguments exactly.`);
+  }
   function draw() {
     const cells = [];
     for (let r=0; r<5; r++) for (let c=0; c<5; c++) {
@@ -18,7 +22,9 @@ function play(value, {verdict, send}) {
         disabled: clue !== null || state.status !== 'playing', onclick: () => {state.reveal(r,c); draw();}}));
     }
     const actions = state.status === 'playing' ? null : h('div', {class: 'game-actions'},
-      h('button', {type: 'button', class: 'button', text: 'Compare results', onclick: () => send(`Run compare-scores with game_id ${JSON.stringify(value.game_id)} and history ${JSON.stringify(state.moves)} and ai_history ${JSON.stringify(value.history)}. Copy both histories exactly.`)}),
+      value.game_id.startsWith('round-')
+        ? h('button', {type: 'button', class: 'button', text: 'Compare results', onclick: compareRound})
+        : h('p', {text: 'Start a new round to compare scores with this version.'}),
       playAgain(send));
     root.replaceChildren(h('h2', {text:'Your game'}), h('p', {text: state.status === 'playing' ? 'Reveal the safe cells. The AI has finished its round.' : state.status === 'won' ? 'You cleared the board.' : 'You hit a mine.'}), h('div', {class:'board'}, cells),
       actions);

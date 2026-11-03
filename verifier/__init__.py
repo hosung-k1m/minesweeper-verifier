@@ -1,5 +1,5 @@
 from contract import Tool, Task, GameInput, RevealInput, TurnInput, CompareInput, BoardOutput, PlayInput, PlayOutput, CompareOutput
-from .checks import result, valid_id, load, replay, visible, play_history, play_order, comparison, MINES, OPENING
+from .checks import result, valid_id, load, replay, visible, play_history, play_order, round_id, opponent_history, comparison, MINES, OPENING
 
 def verify_input(tool, value):
     try:
@@ -19,7 +19,7 @@ def verify_input(tool, value):
                 return result(False, 'coordinates must be between 0 and 4')
         if name is Tool.COMPARE_SCORES:
             replay(value.history)
-            replay(value.ai_history)
+            replay(opponent_history(value.game_id))
         return result(True, 'input is valid')
     except (ValueError, TypeError, AttributeError):
         return result(False, 'invalid game input')
@@ -33,13 +33,19 @@ def verify_output(tool, input_value, output_value, workspace):
             if not isinstance(output_value, PlayOutput):
                 return result(False, 'invalid game output')
             history, status = play_order(input_value.order)
-            valid = valid_id(output_value.game_id) and output_value.history == history and output_value.status == status
+            game_id = output_value.game_id
+            nonce = game_id.removeprefix('round-').split('-')[0]
+            valid = (
+                len(nonce) == 32 and all(char in '0123456789abcdef' for char in nonce)
+                and game_id == round_id(nonce, history)
+                and output_value.history == history and output_value.status == status
+            )
             if valid:
                 return result(True, 'completed game verified', mines=[list(cell) for cell in sorted(MINES)], opening=list(OPENING))
             return result(False, 'output does not match the recorded opponent game')
         if name is Tool.COMPARE_SCORES:
             valid = isinstance(output_value, CompareOutput) and output_value == comparison(
-                input_value.game_id, input_value.history, input_value.ai_history
+                input_value.game_id, input_value.history, opponent_history(input_value.game_id)
             )
         else:
             history = load(workspace, input_value.game_id)

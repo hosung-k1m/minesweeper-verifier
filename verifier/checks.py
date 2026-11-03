@@ -108,6 +108,21 @@ def play_order(order):
     raise ValueError('reveal order did not finish the game')
 
 
+CELL_CODES = '0123456789abcdefghijklmno'
+
+
+def round_id(nonce, history):
+    moves = ''.join(CELL_CODES[move.row * 5 + move.col] for move in history)
+    return f'round-{nonce}-{moves}'
+
+
+def opponent_history(game_id):
+    match = re.fullmatch(r'round-[0-9a-f]{32}-([0-9a-o]{1,12})', game_id)
+    if match is None:
+        raise ValueError('comparison requires a current round ID')
+    return [Move(*divmod(CELL_CODES.index(code), 5)) for code in match[1]]
+
+
 def visible(game_id, history):
     opened, status, _, _ = replay(history)
     board = [[clue((r,c)) if (r,c) in opened else None for c in range(5)] for r in range(5)]

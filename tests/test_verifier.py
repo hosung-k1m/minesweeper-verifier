@@ -6,7 +6,7 @@ import pytest
 from contract import GameInput, RevealInput, TurnInput, CompareInput, Move, PlayInput
 from plugin import get_board, reveal_cell, play_turn, play_game, compare_scores
 from verifier import verify_input, verify_output, verify_task
-from verifier.checks import initial, replay, risks, visible, MINES, OPENING
+from verifier.checks import initial, replay, risks, visible, round_id, MINES, OPENING
 
 
 def test_tools_and_task_reject_forgery(tmp_path):
@@ -21,11 +21,11 @@ def test_tools_and_task_reject_forgery(tmp_path):
     assert verify_output('reveal_cell', move, board, tmp_path)['valid']
     with pytest.raises(ValueError):
         reveal_cell(RevealInput('test', 1, 1), tmp_path)
-    human = CompareInput('test', [Move(0, 3)], board.history)
+    human = CompareInput(round_id('0' * 32, board.history), [Move(0, 3)])
     compared = compare_scores(human, tmp_path)
     assert verify_output('compare_scores', human, compared, tmp_path)['valid']
     assert not verify_task('compare-scores', human, replace(compared, game_comparison='ai'), None, tmp_path)['valid']
-    assert not verify_task('compare-scores', replace(human, ai_history=[]), compared, None, tmp_path)['valid']
+    assert not verify_task('compare-scores', replace(human, game_id='legacy-id'), compared, None, tmp_path)['valid']
     with pytest.raises(ValueError):
         compare_scores(replace(human, history=[]), tmp_path)
 
@@ -87,7 +87,7 @@ def test_play_game_allocates_and_verifies_complete_games(tmp_path):
         assert verdict['valid'] and verdict == verify_task('play-game', plan, output, None, tmp_path)
         assert not verify_output('play_game', plan, replace(output, history=output.history[:-1]), tmp_path)['valid']
         assert not verify_output('play_game', plan, replace(output, status='playing'), tmp_path)['valid']
-        compared = compare_scores(CompareInput(output.game_id, [Move(0, 3)], output.history), independent)
+        compared = compare_scores(CompareInput(output.game_id, [Move(0, 3)]), independent)
         assert compared.ai.status == output.status
     assert get_board(GameInput('game-001'), tmp_path).history == []
 

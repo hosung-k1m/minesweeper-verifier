@@ -1,7 +1,7 @@
 _ > nanoagent.plugin.v0001.ManifestConfig:
 id: minesweeper-verifier
 name: Minesweeper
-version: 0.1.7
+version: 0.1.8
 status: ready
 spec: nanoagent.plugin/v0001
 runtime > nanoagent.plugin.v0001.RuntimeConfig:
@@ -46,7 +46,10 @@ tasks > dict[contract.Task, nanoagent.plugin.v0001.TaskConfig]:
     reference: null
     instructions: Play and verify the opponent's game before opening the human board.
   compare-scores:
-    description: Compare a finished human round with the AI round. Copy the game_id, history, and ai_history supplied by the Result tab exactly.
+    description: >-
+      Compare a finished round. Copy game_id and the human reveal history from the
+      request. A game_id starting with round- contains the opponent's moves. If
+      the ID is from an older version, direct the player to start a new round.
     runner: tool
     tools: [compare_scores]
     reference: null
