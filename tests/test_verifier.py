@@ -1,0 +1,97 @@
+import json
+import subprocess
+from dataclasses import replace
+from pathlib import Path
+import pytest
+from contract import GameInput, RevealInput, CompareInput, Move, PlayOutput
+from plugin import get_board, reveal_cell, compare_scores
+from verifier import verify_input, verify_output, verify_task
+from verifier.checks import initial, replay, risks, visible, MINES, OPENING
+
+
+def test_tools_and_task_reject_forgery(tmp_path):
+    game = GameInput('test')
+    board = get_board(game, tmp_path)
+    assert verify_output('get_board', game, board, tmp_path)['valid']
+    assert not verify_output('get_board', game, replace(board, board=[[9]*5]*5), tmp_path)['valid']
+    assert not verify_input('reveal_cell', RevealInput('test', 5, 0))['valid']
+    move = RevealInput('test', 0, 3)
+    board = reveal_cell(move, tmp_path)
+    assert board.status == 'lost'
+    assert verify_output('reveal_cell', move, board, tmp_path)['valid']
+    output = PlayOutput('test', board.history, board.status)
+    verdict = verify_task('play-game', game, output, None, tmp_path)
+    assert verdict['valid'] and verdict == verify_task('play-game', game, output, None, tmp_path)
+    assert not verify_task('play-game', game, replace(output, status='won'), None, tmp_path)['valid']
+    with pytest.raises(ValueError):
+        reveal_cell(RevealInput('test', 1, 1), tmp_path)
+    human = CompareInput('test', [Move(0, 3)])
+    compared = compare_scores(human, tmp_path)
+    assert verify_output('compare_scores', human, compared, tmp_path)['valid']
+    assert not verify_task('compare-scores', human, replace(compared, game_comparison='ai'), None, tmp_path)['valid']
+    assert not verify_task('compare-scores', CompareInput('missing', human.history), compared, None, tmp_path)['valid']
+    with pytest.raises(ValueError):
+        compare_scores(CompareInput('test', []), tmp_path)
+
+
+def test_risks_and_invalid_moves():
+    opened, _ = initial()
+    counts = risks(opened)
+    assert len(set(counts.values())) > 1
+    safest = min(counts.values())
+    assert sum(value == safest for value in counts.values()) > 1
+    lucky = next(cell for cell, risk in counts.items() if cell not in MINES and risk > safest)
+    assert replay([Move(*lucky)], True)[3] == 0
+    with pytest.raises(ValueError):
+        replay([Move(*OPENING)])
+    with pytest.raises(ValueError):
+        replay([Move(0,3), Move(0,4)])
+
+
+def test_javascript_and_python_agree():
+    cases = [[(0,3)], [(0,4)], [(2,4), (0,3)], [(3,4), (4,4)]]
+    script = '''import {game} from './ui/game.js';
+const cases = JSON.parse(process.argv[1]);
+const result = cases.map(moves => { const g=game([[0,3],[1,4],[3,2],[4,4]],[0,0]);
+try {for (const [r,c] of moves) g.reveal(r,c); return {status:g.status,board:Array.from({length:5},(_,r)=>Array.from({length:5},(_,c)=>g.cell(r,c)))};} catch(e) {return {error:true};}});
+console.log(JSON.stringify(result));'''
+    root = Path(__file__).resolve().parents[1]
+    actual = json.loads(subprocess.check_output(['node', '--experimental-default-type=module', '--input-type=module', '-e', script, json.dumps(cases)], cwd=root, text=True))
+    for moves, js in zip(cases, actual):
+        try:
+            output = visible('test', [Move(*cell) for cell in moves])
+            assert js == {'status': output.status, 'board': output.board}
+        except ValueError:
+            assert js == {'error': True}
+
+
+def test_optimal_guess_can_lose():
+    history = [Move(*cell) for cell in [(1,3), (2,3), (2,4), (3,3), (4,2), (4,3)]]
+    opened, status, _, _ = replay(history)
+    assert status == 'playing'
+    counts = risks(opened)
+    assert counts[(4,4)] == min(counts.values()) > 0
+    _, status, hit, optimal = replay(history + [Move(4,4)], True)
+    assert status == 'lost' and hit == (4,4)
+    assert optimal == replay(history, True)[3] + 1
+
+
+def test_win_and_duplicate_reveal(tmp_path):
+    get_board(GameInput('win'), tmp_path)
+    sequence = []
+    for row in range(5):
+        for col in range(5):
+            opened, status, _, _ = replay(sequence)
+            if status != 'playing':
+                break
+            if (row, col) not in opened and (row, col) not in MINES:
+                move = Move(row, col)
+                sequence.append(move)
+                board = reveal_cell(RevealInput('win', row, col), tmp_path)
+                if board.status == 'playing':
+                    with pytest.raises(ValueError):
+                        reveal_cell(RevealInput('win', row, col), tmp_path)
+    assert board.status == 'won'
+    assert verify_task('play-game', GameInput('win'), PlayOutput('win', sequence, 'won'), None, tmp_path)['valid']
+    assert not verify_task('play-game', GameInput('win'), PlayOutput('win', sequence[:-1], 'won'), None, tmp_path)['valid']
+    assert get_board(GameInput('win'), tmp_path).history == sequence

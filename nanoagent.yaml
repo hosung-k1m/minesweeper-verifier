@@ -1,0 +1,38 @@
+_ > nanoagent.plugin.v0001.ManifestConfig:
+id: minesweeper-verifier
+name: Minesweeper
+version: 0.1.0
+status: in-development
+spec: nanoagent.plugin/v0001
+runtime > nanoagent.plugin.v0001.RuntimeConfig:
+  type: mcp_stdio
+  command: [uv, run, --frozen, python, -m, plugin]
+permissions > nanoagent.plugin.v0001.PermissionsConfig:
+  network > nanoagent.plugin.v0001.NetworkConfig:
+    hosts: []
+  filesystem > nanoagent.plugin.v0001.FilesystemConfig:
+    write: [workspace]
+tools > dict[contract.Tool, nanoagent.plugin.v0001.ToolConfig]:
+  get_board:
+    description: Start or inspect a game, showing only visible cells
+  reveal_cell:
+    description: Reveal a covered cell in the AI game
+  compare_scores:
+    description: Verify and compare completed human and AI games
+tasks > dict[contract.Task, nanoagent.plugin.v0001.TaskConfig]:
+  play-game:
+    description: Play Minesweeper before the human. Choose a new unique game_id for each new game.
+    runner: agent
+    tools: [get_board, reveal_cell]
+    reference: null
+    instructions: >-
+      Call get_board with the input game_id. Play the 5 by 5 board by calling reveal_cell
+      on covered cells using zero-based row and column. Use only visible clues. Continue until
+      won or lost, then submit game_id, history and status exactly as the final tool returned.
+      Do not invent moves or submit an unfinished game.
+  compare-scores:
+    description: Compare a completed human game to the AI game for the given game_id and reveal history.
+    runner: tool
+    tools: [compare_scores]
+    reference: null
+    instructions: Verify and compare the games using the supplied game_id and human reveal history.

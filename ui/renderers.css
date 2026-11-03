@@ -1,0 +1,6 @@
+.board { display: grid; grid-template-columns: repeat(5, 2.5rem); gap: 3px; margin: 1rem 0; }
+.cell { display: grid; place-items: center; width: 2.5rem; height: 2.5rem; border: 1px solid var(--border, #888); border-radius: 4px; font-weight: bold; }
+.covered { background: var(--accent, #567); color: white; cursor: pointer; }
+.open { background: var(--surface, #eee); color: var(--text, #222); }
+.hit { background: #b3261e; color: white; }
+.players { display: flex; flex-wrap: wrap; gap: 2rem; }
