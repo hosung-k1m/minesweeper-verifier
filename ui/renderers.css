@@ -4,3 +4,5 @@
 .open { background: var(--surface, #eee); color: var(--text, #222); }
 .hit { background: #b3261e; color: white; }
 .players { display: flex; flex-wrap: wrap; gap: 2rem; }
+
+.game-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }

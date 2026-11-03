@@ -1,7 +1,7 @@
 _ > nanoagent.plugin.v0001.ManifestConfig:
 id: minesweeper-verifier
 name: Minesweeper
-version: 0.1.5
+version: 0.1.6
 status: ready
 spec: nanoagent.plugin/v0001
 runtime > nanoagent.plugin.v0001.RuntimeConfig:
@@ -25,7 +25,14 @@ tools > dict[contract.Tool, nanoagent.plugin.v0001.ToolConfig]:
     description: Verify and compare completed human and AI games
 tasks > dict[contract.Task, nanoagent.plugin.v0001.TaskConfig]:
   play-game:
-    description: Start a new Minesweeper game when the user asks to play. Takes no arguments.
+    description: >-
+      Default action on every user message in Minesweeper. Unless the user explicitly
+      asks to compare a finished round, asks a question about the game, or asks to stop,
+      call this immediately with {} to play a fresh round. This includes greetings, “yes”,
+      “again”, and repeated requests in the same session. Never ask whether to play again.
+      After success, say “Your new board is ready in the Result tab.” The returned status
+      belongs to the opponent. Keep its outcome, mine locations, game ID, and score out
+      of the chat before the player has played.
     runner: tool
     tools: [play_game]
     reference: null
