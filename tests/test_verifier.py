@@ -3,8 +3,8 @@ import subprocess
 from dataclasses import replace
 from pathlib import Path
 import pytest
-from contract import GameInput, RevealInput, CompareInput, Move, PlayOutput
-from plugin import get_board, reveal_cell, compare_scores
+from contract import GameInput, RevealInput, TurnInput, CompareInput, Move, PlayOutput
+from plugin import get_board, reveal_cell, play_turn, compare_scores
 from verifier import verify_input, verify_output, verify_task
 from verifier.checks import initial, replay, risks, visible, MINES, OPENING
 
@@ -49,6 +49,29 @@ def test_board_responses_verify_after_later_reveals(tmp_path):
     assert not verify_output('reveal_cell', moves[2], replace(board, status='won'), tmp_path)['valid']
     reordered = visible(game.game_id, [board.history[1], board.history[0], board.history[2]])
     assert not verify_output('reveal_cell', moves[2], reordered, tmp_path)['valid']
+
+
+def test_every_guess_finishes_in_two_turn_calls(tmp_path):
+    start = TurnInput('probe', None)
+    opening = play_turn(start, tmp_path)
+    assert opening.status == 'playing'
+    opened, _, _, optimal = replay(opening.history, grade=True)
+    assert optimal == len(opening.history)
+    assert all(count > 0 for count in risks(opened).values())
+
+    for row, col in sorted(risks(opened)):
+        game = GameInput(f'guess-{row}-{col}')
+        start = TurnInput(game.game_id, None)
+        opening = play_turn(start, tmp_path)
+        guess = TurnInput(game.game_id, Move(row, col))
+        final = play_turn(guess, tmp_path)
+        assert final.status == ('lost' if (row, col) in MINES else 'won')
+        assert verify_output('play_turn', start, opening, tmp_path)['valid']
+        assert verify_output('play_turn', guess, final, tmp_path)['valid']
+        assert not verify_output('play_turn', guess, opening, tmp_path)['valid']
+        assert not verify_output('play_turn', start, final, tmp_path)['valid']
+        submission = PlayOutput(game.game_id, final.history, final.status)
+        assert verify_task('play-game', game, submission, None, tmp_path)['valid']
 
 
 def test_risks_and_invalid_moves():

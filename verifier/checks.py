@@ -73,6 +73,24 @@ def replay(history, grade=False):
             hit = cell
     return opened, status, hit, optimal
 
+def play_history(history, guess):
+    opened, status, _, _ = replay(history)
+    if guess is not None:
+        if status != 'playing' or 0 in risks(opened).values():
+            raise ValueError('guess only when there are no guaranteed safe moves')
+        status = reveal(opened, (guess.row, guess.col))
+        history = [*history, guess]
+    else:
+        history = list(history)
+    while status == 'playing':
+        safe = min((cell for cell, count in risks(opened).items() if count == 0), default=None)
+        if safe is None:
+            break
+        status = reveal(opened, safe)
+        history.append(Move(*safe))
+    return history
+
+
 def visible(game_id, history):
     opened, status, _, _ = replay(history)
     board = [[clue((r,c)) if (r,c) in opened else None for c in range(5)] for r in range(5)]

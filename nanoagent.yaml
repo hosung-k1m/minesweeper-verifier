@@ -1,7 +1,7 @@
 _ > nanoagent.plugin.v0001.ManifestConfig:
 id: minesweeper-verifier
 name: Minesweeper
-version: 0.1.2
+version: 0.1.3
 status: ready
 spec: nanoagent.plugin/v0001
 runtime > nanoagent.plugin.v0001.RuntimeConfig:
@@ -17,20 +17,22 @@ tools > dict[contract.Tool, nanoagent.plugin.v0001.ToolConfig]:
     description: Start or inspect a game, showing only visible cells
   reveal_cell:
     description: Reveal a covered cell in the AI game
+  play_turn:
+    description: Start with guess null, or guess one covered cell. Reveals all guaranteed safe cells and returns the board.
   compare_scores:
     description: Verify and compare completed human and AI games
 tasks > dict[contract.Task, nanoagent.plugin.v0001.TaskConfig]:
   play-game:
     description: Play Minesweeper before the human. Choose a new unique game_id for each new game.
     runner: agent
-    tools: [get_board, reveal_cell]
+    tools: [play_turn]
     reference: null
     instructions: >-
-      Call get_board with the input game_id. While status is playing, choose one covered
-      cell from the latest visible board and call reveal_cell with its zero-based row and
-      column. Wait for the result before choosing another cell. Keep reasoning brief.
-      When status is won or lost, immediately call submit with game_id, history and status
-      from that result.
+      Start by calling play_turn with the input game_id and guess null. The tool opens
+      all guaranteed safe cells. If status is playing, make one quick choice among the
+      null cells and call play_turn with guess containing its zero-based row and col.
+      As soon as status is won or lost, call submit with the returned game_id, history
+      and status.
   compare-scores:
     description: Compare a completed human game to the AI game for the given game_id and reveal history.
     runner: tool

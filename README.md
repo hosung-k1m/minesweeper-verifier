@@ -6,7 +6,7 @@ Play a fixed 5×5 Minesweeper puzzle after an AI has played it. Ask the plugin t
 
 `get_board` and `reveal_cell` expose only visible clues to the AI. `compare_scores` replays both games and calculates results. Each game uses a unique identifier and its AI history is stored in the plugin workspace.
 
-`play-game` runs the AI game; `compare-scores` checks the human history against the recorded AI game. Scores count safe cells revealed including the opening. Move accuracy counts explicit choices with the lowest immediate mine probability among all placements consistent with visible clues. An accuracy with no decisions is N/A.
+`play-game` uses `play_turn` to open all provably safe cells from the visible clues, then asks the AI to choose a covered cell when a guess is required. These safe moves appear in the AI history and count toward its score. `compare-scores` checks the human history against the recorded AI game. Scores count safe cells revealed including the opening. Move accuracy counts explicit choices with the lowest immediate mine probability among all placements consistent with visible clues. An accuracy with no decisions is N/A.
 
 ## Layout
 

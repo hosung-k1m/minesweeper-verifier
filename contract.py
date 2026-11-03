@@ -6,6 +6,7 @@ from slimconfig import Output
 class Tool(Enum):
     GET_BOARD = 'get_board'
     REVEAL_CELL = 'reveal_cell'
+    PLAY_TURN = 'play_turn'
     COMPARE_SCORES = 'compare_scores'
 
 class Task(Enum):
@@ -26,6 +27,11 @@ class RevealInput(Output):
     game_id: Annotated[str, 'Game identifier']
     row: Annotated[int, 'Zero-based row']
     col: Annotated[int, 'Zero-based column']
+
+@dataclass
+class TurnInput(Output):
+    game_id: Annotated[str, 'Game identifier']
+    guess: Annotated[Move | None, 'Null to start, or one covered cell to guess']
 
 @dataclass
 class BoardOutput(Output):
@@ -62,5 +68,5 @@ class CompareOutput(Output):
     game_comparison: Annotated[str, 'human, ai, or tie']
     accuracy_comparison: Annotated[str, 'human, ai, tie, or N/A']
 
-TOOLS = {Tool.GET_BOARD: (GameInput, BoardOutput), Tool.REVEAL_CELL: (RevealInput, BoardOutput), Tool.COMPARE_SCORES: (CompareInput, CompareOutput)}
+TOOLS = {Tool.GET_BOARD: (GameInput, BoardOutput), Tool.REVEAL_CELL: (RevealInput, BoardOutput), Tool.PLAY_TURN: (TurnInput, BoardOutput), Tool.COMPARE_SCORES: (CompareInput, CompareOutput)}
 TASKS = {Task.PLAY_GAME: (GameInput, PlayOutput), Task.COMPARE_SCORES: (CompareInput, CompareOutput)}

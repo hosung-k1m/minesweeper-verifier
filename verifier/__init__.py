@@ -1,14 +1,17 @@
-from contract import Tool, Task, GameInput, RevealInput, CompareInput, BoardOutput, PlayOutput, CompareOutput
-from .checks import result, valid_id, load, replay, visible, comparison, MINES, OPENING
+from contract import Tool, Task, GameInput, RevealInput, TurnInput, CompareInput, BoardOutput, PlayOutput, CompareOutput
+from .checks import result, valid_id, load, replay, visible, play_history, comparison, MINES, OPENING
 
 def verify_input(tool, value):
     try:
         name = Tool(tool)
-        expected = {Tool.GET_BOARD: GameInput, Tool.REVEAL_CELL: RevealInput, Tool.COMPARE_SCORES: CompareInput}[name]
+        expected = {Tool.GET_BOARD: GameInput, Tool.REVEAL_CELL: RevealInput, Tool.PLAY_TURN: TurnInput, Tool.COMPARE_SCORES: CompareInput}[name]
         if not isinstance(value, expected) or not valid_id(value.game_id):
             return result(False, 'invalid game input or identifier')
         if name is Tool.REVEAL_CELL and (not 0 <= value.row < 5 or not 0 <= value.col < 5):
             return result(False, 'coordinates must be between 0 and 4')
+        if name is Tool.PLAY_TURN and value.guess is not None:
+            if not 0 <= value.guess.row < 5 or not 0 <= value.guess.col < 5:
+                return result(False, 'coordinates must be between 0 and 4')
         if name is Tool.COMPARE_SCORES:
             replay(value.history)
         return result(True, 'input is valid')
@@ -31,6 +34,10 @@ def verify_output(tool, input_value, output_value, workspace):
             valid = snapshot == history[:len(snapshot)] and output_value == visible(input_value.game_id, snapshot)
             if name is Tool.REVEAL_CELL:
                 valid = valid and bool(snapshot) and snapshot[-1].row == input_value.row and snapshot[-1].col == input_value.col
+            if valid and name is Tool.PLAY_TURN:
+                guess = input_value.guess
+                before = [] if guess is None else snapshot[:snapshot.index(guess)]
+                valid = snapshot == play_history(before, guess)
         return result(valid, 'output matches replay' if valid else 'output does not match replay')
     except (ValueError, TypeError, AttributeError, KeyError, OSError):
         return result(False, 'invalid or missing game evidence')

@@ -6,10 +6,10 @@ from mcp.server.lowlevel import Server
 from mcp.server.stdio import stdio_server
 from slimconfig import build_output, output_schema, plain_output
 from contract import TOOLS, Tool
-from plugin import get_board, reveal_cell, compare_scores
+from plugin import get_board, reveal_cell, play_turn, compare_scores
 
 server = Server('minesweeper-verifier')
-IMPLEMENTATIONS = {Tool.GET_BOARD: get_board, Tool.REVEAL_CELL: reveal_cell, Tool.COMPARE_SCORES: compare_scores}
+IMPLEMENTATIONS = {Tool.GET_BOARD: get_board, Tool.REVEAL_CELL: reveal_cell, Tool.PLAY_TURN: play_turn, Tool.COMPARE_SCORES: compare_scores}
 
 @server.list_tools()
 async def list_tools():
