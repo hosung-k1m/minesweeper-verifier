@@ -13,7 +13,7 @@ function play(value, {verdict, send}) {
         'aria-label': `Row ${r+1}, column ${c+1}: ${clue === null ? 'covered' : clue}`,
         disabled: clue !== null || state.status !== 'playing', onclick: () => {state.reveal(r,c); draw();}}));
     }
-    root.replaceChildren(h('h2', {text:'Your game'}), h('p', {text: state.status === 'playing' ? 'Reveal the safe cells. The AI has finished its game.' : state.status === 'won' ? 'You cleared the board.' : 'You hit a mine.'}), h('div', {class:'board'}, cells),
+    root.replaceChildren(h('h2', {text:'Your game'}), h('p', {text: state.status === 'playing' ? 'Reveal the safe cells. The automated opponent has finished its game.' : state.status === 'won' ? 'You cleared the board.' : 'You hit a mine.'}), h('div', {class:'board'}, cells),
       ...(state.status === 'playing' ? [] : [h('button', {text:'Compare results', onclick: () => send(`Run compare-scores with game_id ${JSON.stringify(value.game_id)} and human history ${JSON.stringify(state.moves)}.`)})]));
   }
   draw();
@@ -28,7 +28,7 @@ function player(title, value) {
 }
 function compare(value, {verdict}) {
   if (!verdict || !verdict.valid) return h('p', {text:verdict?.message || 'Comparison verification is unavailable.'});
-  const label = x => ({human:'Human wins', ai:'AI wins', tie:'Tie', 'N/A':'N/A'})[x];
-  return h('section', {}, [h('h2', {text:'Verified results'}), h('div', {class:'players'}, [player('Human',value.human), player('AI',value.ai)]), h('p', {text:`Game score: ${label(value.game_comparison)}`}), h('p', {text:`Move accuracy: ${label(value.accuracy_comparison)}`})]);
+  const label = x => ({human:'Human wins', ai:'Opponent wins', tie:'Tie', 'N/A':'N/A'})[x];
+  return h('section', {}, [h('h2', {text:'Verified results'}), h('div', {class:'players'}, [player('Human',value.human), player('Opponent',value.ai)]), h('p', {text:`Game score: ${label(value.game_comparison)}`}), h('p', {text:`Move accuracy: ${label(value.accuracy_comparison)}`})]);
 }
 export default {PlayOutput: play, CompareOutput: compare};

@@ -91,6 +91,21 @@ def play_history(history, guess):
     return history
 
 
+def opponent_game(game_id):
+    if not re.fullmatch(r'[0-9a-f]{12}4[0-9a-f]{3}[89ab][0-9a-f]{15}', game_id):
+        raise ValueError('invalid opponent game identifier')
+    seed = int(game_id, 16)
+    history = play_history([], None)
+    opened, status, _, _ = replay(history)
+    while status == 'playing':
+        counts = risks(opened)
+        lowest = min(counts.values())
+        choices = sorted(cell for cell, count in counts.items() if count == lowest)
+        history = play_history(history, Move(*choices[seed % len(choices)]))
+        opened, status, _, _ = replay(history)
+    return history, status
+
+
 def visible(game_id, history):
     opened, status, _, _ = replay(history)
     board = [[clue((r,c)) if (r,c) in opened else None for c in range(5)] for r in range(5)]

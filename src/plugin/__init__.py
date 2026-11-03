@@ -1,7 +1,8 @@
 import json
 from dataclasses import asdict
-from verifier.checks import valid_id, load, visible, replay, comparison, play_history
-from contract import Move
+from uuid import uuid4
+from verifier.checks import valid_id, load, visible, replay, comparison, play_history, opponent_game
+from contract import Move, PlayOutput
 
 def path_for(workspace, game_id):
     if not valid_id(game_id):
@@ -35,6 +36,14 @@ def play_turn(value, workspace):
         history = play_history(load(workspace, value.game_id), value.guess)
     save(path, history)
     return visible(value.game_id, history)
+
+
+def play_game(value, workspace):
+    game_id = uuid4().hex
+    history, status = opponent_game(game_id)
+    with path_for(workspace, game_id).open('x', encoding='utf-8') as file:
+        json.dump([asdict(move) for move in history], file)
+    return PlayOutput(game_id, history, status)
 
 
 def compare_scores(value, workspace):

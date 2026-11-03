@@ -3,8 +3,8 @@ import subprocess
 from dataclasses import replace
 from pathlib import Path
 import pytest
-from contract import GameInput, RevealInput, TurnInput, CompareInput, Move, PlayOutput
-from plugin import get_board, reveal_cell, play_turn, compare_scores
+from contract import GameInput, RevealInput, TurnInput, CompareInput, Move, PlayInput
+from plugin import get_board, reveal_cell, play_turn, play_game, compare_scores
 from verifier import verify_input, verify_output, verify_task
 from verifier.checks import initial, replay, risks, visible, MINES, OPENING
 
@@ -19,10 +19,6 @@ def test_tools_and_task_reject_forgery(tmp_path):
     board = reveal_cell(move, tmp_path)
     assert board.status == 'lost'
     assert verify_output('reveal_cell', move, board, tmp_path)['valid']
-    output = PlayOutput('test', board.history, board.status)
-    verdict = verify_task('play-game', game, output, None, tmp_path)
-    assert verdict['valid'] and verdict == verify_task('play-game', game, output, None, tmp_path)
-    assert not verify_task('play-game', game, replace(output, status='won'), None, tmp_path)['valid']
     with pytest.raises(ValueError):
         reveal_cell(RevealInput('test', 1, 1), tmp_path)
     human = CompareInput('test', [Move(0, 3)])
@@ -70,8 +66,23 @@ def test_every_guess_finishes_in_two_turn_calls(tmp_path):
         assert verify_output('play_turn', guess, final, tmp_path)['valid']
         assert not verify_output('play_turn', guess, opening, tmp_path)['valid']
         assert not verify_output('play_turn', start, final, tmp_path)['valid']
-        submission = PlayOutput(game.game_id, final.history, final.status)
-        assert verify_task('play-game', game, submission, None, tmp_path)['valid']
+
+
+def test_play_game_allocates_and_verifies_complete_games(tmp_path):
+    request = PlayInput()
+    get_board(GameInput('game-001'), tmp_path)
+    first = play_game(request, tmp_path)
+    second = play_game(request, tmp_path)
+    assert first.game_id != second.game_id
+    for output in (first, second):
+        assert output.status in ('won', 'lost')
+        verdict = verify_task('play-game', request, output, None, tmp_path)
+        assert verdict['valid'] and verdict == verify_task('play-game', request, output, None, tmp_path)
+        assert not verify_output('play_game', request, replace(output, history=output.history[:-1]), tmp_path)['valid']
+        assert not verify_output('play_game', request, replace(output, status='playing'), tmp_path)['valid']
+        compared = compare_scores(CompareInput(output.game_id, [Move(0, 3)]), tmp_path)
+        assert compared.ai.status == output.status
+    assert get_board(GameInput('game-001'), tmp_path).history == []
 
 
 def test_risks_and_invalid_moves():
@@ -132,6 +143,4 @@ def test_win_and_duplicate_reveal(tmp_path):
                     with pytest.raises(ValueError):
                         reveal_cell(RevealInput('win', row, col), tmp_path)
     assert board.status == 'won'
-    assert verify_task('play-game', GameInput('win'), PlayOutput('win', sequence, 'won'), None, tmp_path)['valid']
-    assert not verify_task('play-game', GameInput('win'), PlayOutput('win', sequence[:-1], 'won'), None, tmp_path)['valid']
     assert get_board(GameInput('win'), tmp_path).history == sequence

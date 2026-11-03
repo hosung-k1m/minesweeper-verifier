@@ -7,6 +7,7 @@ class Tool(Enum):
     GET_BOARD = 'get_board'
     REVEAL_CELL = 'reveal_cell'
     PLAY_TURN = 'play_turn'
+    PLAY_GAME = 'play_game'
     COMPARE_SCORES = 'compare_scores'
 
 class Task(Enum):
@@ -42,10 +43,14 @@ class BoardOutput(Output):
     mine_count: Annotated[int, 'Total mines']
 
 @dataclass
+class PlayInput(Output):
+    pass
+
+@dataclass
 class PlayOutput(Output):
-    game_id: Annotated[str, 'Game identifier copied from input']
-    history: Annotated[list[Move], 'All explicit reveals copied from the last tool response']
-    status: Annotated[str, 'Terminal status copied from the last tool response']
+    game_id: Annotated[str, 'Game identifier assigned by the plugin']
+    history: Annotated[list[Move], 'All explicit reveals in order']
+    status: Annotated[str, 'Terminal status: won or lost']
 
 @dataclass
 class CompareInput(Output):
@@ -68,5 +73,5 @@ class CompareOutput(Output):
     game_comparison: Annotated[str, 'human, ai, or tie']
     accuracy_comparison: Annotated[str, 'human, ai, tie, or N/A']
 
-TOOLS = {Tool.GET_BOARD: (GameInput, BoardOutput), Tool.REVEAL_CELL: (RevealInput, BoardOutput), Tool.PLAY_TURN: (TurnInput, BoardOutput), Tool.COMPARE_SCORES: (CompareInput, CompareOutput)}
-TASKS = {Task.PLAY_GAME: (GameInput, PlayOutput), Task.COMPARE_SCORES: (CompareInput, CompareOutput)}
+TOOLS = {Tool.GET_BOARD: (GameInput, BoardOutput), Tool.REVEAL_CELL: (RevealInput, BoardOutput), Tool.PLAY_TURN: (TurnInput, BoardOutput), Tool.PLAY_GAME: (PlayInput, PlayOutput), Tool.COMPARE_SCORES: (CompareInput, CompareOutput)}
+TASKS = {Task.PLAY_GAME: TOOLS[Tool.PLAY_GAME], Task.COMPARE_SCORES: (CompareInput, CompareOutput)}

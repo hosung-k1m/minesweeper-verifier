@@ -1,9 +1,11 @@
-from contract import Tool, Task, GameInput, RevealInput, TurnInput, CompareInput, BoardOutput, PlayOutput, CompareOutput
-from .checks import result, valid_id, load, replay, visible, play_history, comparison, MINES, OPENING
+from contract import Tool, Task, GameInput, RevealInput, TurnInput, CompareInput, BoardOutput, PlayInput, PlayOutput, CompareOutput
+from .checks import result, valid_id, load, replay, visible, play_history, opponent_game, comparison, MINES, OPENING
 
 def verify_input(tool, value):
     try:
         name = Tool(tool)
+        if name is Tool.PLAY_GAME:
+            return result(True, 'input is valid') if isinstance(value, PlayInput) else result(False, 'expected an empty game request')
         expected = {Tool.GET_BOARD: GameInput, Tool.REVEAL_CELL: RevealInput, Tool.PLAY_TURN: TurnInput, Tool.COMPARE_SCORES: CompareInput}[name]
         if not isinstance(value, expected) or not valid_id(value.game_id):
             return result(False, 'invalid game input or identifier')
@@ -23,6 +25,17 @@ def verify_output(tool, input_value, output_value, workspace):
         if not verify_input(tool, input_value)['valid']:
             return result(False, 'invalid input')
         name = Tool(tool)
+        if name is Tool.PLAY_GAME:
+            if not isinstance(output_value, PlayOutput):
+                return result(False, 'invalid game output')
+            history, status = opponent_game(output_value.game_id)
+            valid = (
+                output_value.history == history == load(workspace, output_value.game_id)
+                and output_value.status == status
+            )
+            if valid:
+                return result(True, 'completed game verified', mines=[list(cell) for cell in sorted(MINES)], opening=list(OPENING))
+            return result(False, 'output does not match the recorded opponent game')
         history = load(workspace, input_value.game_id)
         if name is Tool.COMPARE_SCORES:
             valid = isinstance(output_value, CompareOutput) and output_value == comparison(input_value.game_id, input_value.history, history)
@@ -43,12 +56,5 @@ def verify_output(tool, input_value, output_value, workspace):
         return result(False, 'invalid or missing game evidence')
 
 def verify_task(task, arguments, output, reference, workspace):
-    if Task(task) is Task.COMPARE_SCORES:
-        return verify_output(Tool.COMPARE_SCORES, arguments, output, workspace)
-    try:
-        history = load(workspace, arguments.game_id)
-        _, status, _, _ = replay(history)
-        valid = isinstance(arguments, GameInput) and isinstance(output, PlayOutput) and output.game_id == arguments.game_id and output.history == history and output.status == status and status in ('won', 'lost')
-        return result(valid, 'completed game verified' if valid else 'game is incomplete or does not match history', mines=[list(cell) for cell in sorted(MINES)], opening=list(OPENING)) if valid else result(False, 'game is incomplete or does not match history')
-    except (ValueError, TypeError, AttributeError, KeyError, OSError):
-        return result(False, 'invalid or missing game evidence')
+    tool = Tool.PLAY_GAME if Task(task) is Task.PLAY_GAME else Tool.COMPARE_SCORES
+    return verify_output(tool, arguments, output, workspace)
