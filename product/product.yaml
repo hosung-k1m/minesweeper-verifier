@@ -1,6 +1,10 @@
 _ > nanoagent.plugin.v0001.ProductConfig:
 tagline: Play Minesweeper against an automated opponent
-summary: Play a shared puzzle and compare your decisions with the opponent's verified game.
+summary: >-
+  Type “play the game” in the chat to play!
+  
+  Then open the Result tab, play the board,
+  and select Compare results to see how you did against the ai.
 highlights:
   - Exact, deterministic move grading
   - Play locally with immediate feedback
