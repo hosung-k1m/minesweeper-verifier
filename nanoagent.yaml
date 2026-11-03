@@ -1,7 +1,7 @@
 _ > nanoagent.plugin.v0001.ManifestConfig:
 id: minesweeper-verifier
 name: Minesweeper
-version: 0.1.8
+version: 0.1.9
 status: ready
 spec: nanoagent.plugin/v0001
 runtime > nanoagent.plugin.v0001.RuntimeConfig:
@@ -28,17 +28,12 @@ tasks > dict[contract.Task, nanoagent.plugin.v0001.TaskConfig]:
     description: |-
       Default action for a new chat message, including “play the game” and “play again”.
       Start a fresh round every time. For comparison requests, use compare-scores instead.
-      You are the opponent. Reason from only this round’s opening clues and choose
-      the entire reveal order yourself:
-      0 0 1 ? ?
-      0 0 1 ? ?
-      0 1 1 ? ?
-      0 1 ? ? ?
-      0 1 ? ? ?
-      Call play-game once with order containing each of these cell indexes exactly once:
-      3, 4, 8, 9, 13, 14, 17, 18, 19, 22, 23, 24. Index is 5 × row + column, zero-based.
-      Put cells you think are safest first. Make your own guesses when clues are ambiguous.
-      The tool executes your choices in order until the game ends.
+      You are the opponent. Use the opening clues below. Each set contains exactly
+      one mine: [3,8], [3,8,13], [8,13,17,18], [17], [17,22]. There are four mines total.
+      Spend at most 100 tokens on reasoning. Identify a few easy safe cells, then make
+      your best guess for the remaining order. Do not enumerate mine placements.
+      Call play-game immediately with order containing each covered index exactly once:
+      3, 4, 8, 9, 13, 14, 17, 18, 19, 22, 23, 24. Put your safest choices first.
       After success, say “Your new board is ready in the Result tab.” Keep the opponent's
       outcome, history, score, and mine locations out of the chat until comparison.
     runner: tool
