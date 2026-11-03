@@ -42,6 +42,14 @@ function player(title, value) {
 function compare(value, {verdict, send}) {
   if (!verdict || !verdict.valid) return h('p', {text:verdict?.message || 'Comparison verification is unavailable.'});
   const label = x => ({human:'Human wins', ai:'Opponent wins', tie:'Tie', 'N/A':'N/A'})[x];
-  return h('section', {}, [h('h2', {text:'Verified results'}), h('div', {class:'players'}, [player('Human',value.human), player('Opponent',value.ai)]), h('p', {text:`Game score: ${label(value.game_comparison)}`}), h('p', {text:`Move accuracy: ${label(value.accuracy_comparison)}`}), playAgain(send)]);
+  const moves = verdict.details.ai_moves;
+  const aiReview = moves && h('section', {}, [
+    h('h3', {text:'Opponent moves'}),
+    h('p', {text:`Guesses: ${moves.filter(move => move.guess).length} / ${moves.length}`}),
+    h('ol', {}, moves.map(({row, col, optimal, guess}) => h('li', {
+      text: `Row ${row + 1}, column ${col + 1} · ${optimal ? 'Lowest risk' : 'Higher risk'}${guess ? ' · Guess' : ''}`,
+    }))),
+  ]);
+  return h('section', {}, [h('h2', {text:'Verified results'}), h('div', {class:'players'}, [player('Human',value.human), player('Opponent',value.ai)]), h('p', {text:`Game score: ${label(value.game_comparison)}`}), h('p', {text:`Move accuracy: ${label(value.accuracy_comparison)}`}), aiReview, playAgain(send)]);
 }
 export default {PlayOutput: play, CompareOutput: compare};

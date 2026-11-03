@@ -44,4 +44,5 @@ def play_game(value, workspace):
 
 
 def compare_scores(value, workspace):
-    return comparison(value.game_id, value.history, opponent_history(value.game_id))
+    output, _ = comparison(value.game_id, value.history, opponent_history(value.game_id))
+    return output

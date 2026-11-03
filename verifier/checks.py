@@ -57,7 +57,7 @@ def risks(opened):
 
 def replay(history, grade=False):
     opened, status = initial()
-    optimal = 0
+    move_grades = []
     hit = None
     for move in history:
         cell = (move.row, move.col)
@@ -67,11 +67,16 @@ def replay(history, grade=False):
             raise ValueError('cell is out of range or already revealed')
         if grade:
             counts = risks(opened)
-            optimal += counts[cell] == min(counts.values())
+            move_grades.append({
+                'row': move.row,
+                'col': move.col,
+                'optimal': counts[cell] == min(counts.values()),
+                'guess': counts[cell] > 0,
+            })
         status = reveal(opened, cell)
         if status == 'lost':
             hit = cell
-    return opened, status, hit, optimal
+    return opened, status, hit, move_grades
 
 def play_history(history, guess):
     opened, status, _, _ = replay(history)
@@ -137,15 +142,17 @@ def load(workspace, game_id):
     return [Move(**move) for move in data]
 
 def player(history):
-    opened, status, hit, optimal = replay(history, True)
+    opened, status, hit, move_grades = replay(history, grade=True)
     if status == 'playing':
         raise ValueError('game is incomplete')
     board = [[('hit' if (r,c) == hit else 'mine' if (r,c) in MINES else str(clue((r,c))) if (r,c) in opened else 'covered') for c in range(5)] for r in range(5)]
-    return PlayerResult(board, status, len(opened), optimal, len(history))
+    optimal = sum(move['optimal'] for move in move_grades)
+    return PlayerResult(board, status, len(opened), optimal, len(history)), move_grades
 
 def comparison(game_id, human_history, ai_history):
-    human, ai = player(human_history), player(ai_history)
+    human, _ = player(human_history)
+    ai, ai_moves = player(ai_history)
     def compare(a, b):
         return 'human' if a > b else 'ai' if a < b else 'tie'
     accuracy = compare(human.optimal_moves * ai.decisions, ai.optimal_moves * human.decisions) if human.decisions and ai.decisions else 'N/A'
-    return CompareOutput(game_id, human, ai, compare(human.game_score, ai.game_score), accuracy)
+    return CompareOutput(game_id, human, ai, compare(human.game_score, ai.game_score), accuracy), ai_moves

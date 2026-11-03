@@ -51,8 +51,9 @@ def test_every_guess_finishes_in_two_turn_calls(tmp_path):
     start = TurnInput('probe', None)
     opening = play_turn(start, tmp_path)
     assert opening.status == 'playing'
-    opened, _, _, optimal = replay(opening.history, grade=True)
-    assert optimal == len(opening.history)
+    opened, _, _, grades = replay(opening.history, grade=True)
+    assert len(grades) == len(opening.history)
+    assert all(move['optimal'] and not move['guess'] for move in grades)
     assert all(count > 0 for count in risks(opened).values())
 
     for row, col in sorted(risks(opened)):
@@ -89,6 +90,10 @@ def test_play_game_allocates_and_verifies_complete_games(tmp_path):
         assert not verify_output('play_game', plan, replace(output, status='playing'), tmp_path)['valid']
         compared = compare_scores(CompareInput(output.game_id, [Move(0, 3)]), independent)
         assert compared.ai.status == output.status
+        comparison = verify_task('compare-scores', CompareInput(output.game_id, [Move(0, 3)]), compared, None, independent)
+        assert comparison['details']['ai_moves'] == verdict['details']['ai_moves']
+        if output.status == 'lost':
+            assert comparison['details']['ai_moves'] == [{'row': 0, 'col': 3, 'optimal': False, 'guess': True}]
     assert get_board(GameInput('game-001'), tmp_path).history == []
 
 
@@ -99,7 +104,9 @@ def test_risks_and_invalid_moves():
     safest = min(counts.values())
     assert sum(value == safest for value in counts.values()) > 1
     lucky = next(cell for cell, risk in counts.items() if cell not in MINES and risk > safest)
-    assert replay([Move(*lucky)], True)[3] == 0
+    assert replay([Move(*lucky)], True)[3] == [
+        {'row': lucky[0], 'col': lucky[1], 'optimal': False, 'guess': True}
+    ]
     with pytest.raises(ValueError):
         replay([Move(*OPENING)])
     with pytest.raises(ValueError):
@@ -129,9 +136,9 @@ def test_optimal_guess_can_lose():
     assert status == 'playing'
     counts = risks(opened)
     assert counts[(4,4)] == min(counts.values()) > 0
-    _, status, hit, optimal = replay(history + [Move(4,4)], True)
+    _, status, hit, grades = replay(history + [Move(4,4)], True)
     assert status == 'lost' and hit == (4,4)
-    assert optimal == replay(history, True)[3] + 1
+    assert grades[-1] == {'row': 4, 'col': 4, 'optimal': True, 'guess': True}
 
 
 def test_win_and_duplicate_reveal(tmp_path):

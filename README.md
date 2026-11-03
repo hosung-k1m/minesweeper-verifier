@@ -6,7 +6,7 @@ Play a fixed 5×5 Minesweeper puzzle after the automated opponent has played it.
 
 `play_game` executes a fresh reveal order chosen by the AI from the opening clues. It stops at a mine or when the board is clear. `compare_scores` replays the player’s reveals and the opponent’s reveals encoded in the round ID, then calculates their scores. Neither task reads or writes saved game files. The separate `get_board`, `reveal_cell`, and `play_turn` tools support inspecting and stepping through a game.
 
-`play-game` starts a fresh round. `compare-scores` compares the finished games. Scores count safe cells revealed, including the opening. Move accuracy counts choices with the lowest immediate mine probability among all placements consistent with the visible clues.
+`play-game` starts a fresh round. `compare-scores` compares the finished games. Scores count safe cells revealed, including the opening. Move accuracy counts choices with the lowest immediate mine probability among all placements consistent with the visible clues. The comparison lists each opponent reveal, marks whether it was lowest risk, and counts any reveal that wasn't guaranteed safe as a guess. A lowest-risk move can still be a guess.
 
 ## Layout
 

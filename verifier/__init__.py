@@ -41,12 +41,16 @@ def verify_output(tool, input_value, output_value, workspace):
                 and output_value.history == history and output_value.status == status
             )
             if valid:
-                return result(True, 'completed game verified', mines=[list(cell) for cell in sorted(MINES)], opening=list(OPENING))
+                _, _, _, ai_moves = replay(history, grade=True)
+                return result(True, 'completed game verified', mines=[list(cell) for cell in sorted(MINES)], opening=list(OPENING), ai_moves=ai_moves)
             return result(False, 'output does not match the recorded opponent game')
         if name is Tool.COMPARE_SCORES:
-            valid = isinstance(output_value, CompareOutput) and output_value == comparison(
+            expected, ai_moves = comparison(
                 input_value.game_id, input_value.history, opponent_history(input_value.game_id)
             )
+            if isinstance(output_value, CompareOutput) and output_value == expected:
+                return result(True, 'output matches replay', ai_moves=ai_moves)
+            return result(False, 'output does not match replay')
         else:
             history = load(workspace, input_value.game_id)
             if not isinstance(output_value, BoardOutput):
