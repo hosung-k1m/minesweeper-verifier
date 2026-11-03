@@ -1,7 +1,7 @@
 _ > nanoagent.plugin.v0001.ManifestConfig:
 id: minesweeper-verifier
 name: Minesweeper
-version: 0.1.1
+version: 0.1.2
 status: ready
 spec: nanoagent.plugin/v0001
 runtime > nanoagent.plugin.v0001.RuntimeConfig:
@@ -26,10 +26,11 @@ tasks > dict[contract.Task, nanoagent.plugin.v0001.TaskConfig]:
     tools: [get_board, reveal_cell]
     reference: null
     instructions: >-
-      Call get_board with the input game_id. Play the 5 by 5 board by calling reveal_cell
-      on covered cells using zero-based row and column. Use only visible clues. Continue until
-      won or lost, then submit game_id, history and status exactly as the final tool returned.
-      Do not invent moves or submit an unfinished game.
+      Call get_board with the input game_id. While status is playing, choose one covered
+      cell from the latest visible board and call reveal_cell with its zero-based row and
+      column. Wait for the result before choosing another cell. Keep reasoning brief.
+      When status is won or lost, immediately call submit with game_id, history and status
+      from that result.
   compare-scores:
     description: Compare a completed human game to the AI game for the given game_id and reveal history.
     runner: tool

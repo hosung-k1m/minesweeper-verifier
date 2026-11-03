@@ -34,6 +34,23 @@ def test_tools_and_task_reject_forgery(tmp_path):
         compare_scores(CompareInput('test', []), tmp_path)
 
 
+def test_board_responses_verify_after_later_reveals(tmp_path):
+    game = GameInput('game_002')
+    opening = get_board(game, tmp_path)
+    moves = [RevealInput(game.game_id, row, col) for row, col in [(1, 3), (2, 3), (3, 3), (4, 2)]]
+    responses = [reveal_cell(move, tmp_path) for move in moves]
+
+    assert verify_output('get_board', game, opening, tmp_path)['valid']
+    for move, board in zip(moves, responses):
+        assert verify_output('reveal_cell', move, board, tmp_path)['valid']
+
+    board = responses[2]
+    assert not verify_output('reveal_cell', moves[1], board, tmp_path)['valid']
+    assert not verify_output('reveal_cell', moves[2], replace(board, status='won'), tmp_path)['valid']
+    reordered = visible(game.game_id, [board.history[1], board.history[0], board.history[2]])
+    assert not verify_output('reveal_cell', moves[2], reordered, tmp_path)['valid']
+
+
 def test_risks_and_invalid_moves():
     opened, _ = initial()
     counts = risks(opened)

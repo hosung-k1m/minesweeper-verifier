@@ -24,9 +24,13 @@ def verify_output(tool, input_value, output_value, workspace):
         if name is Tool.COMPARE_SCORES:
             valid = isinstance(output_value, CompareOutput) and output_value == comparison(input_value.game_id, input_value.history, history)
         else:
-            valid = isinstance(output_value, BoardOutput) and output_value == visible(input_value.game_id, history)
+            if not isinstance(output_value, BoardOutput):
+                return result(False, 'output does not match replay')
+            # Later reveals can be saved before the host verifies this response.
+            snapshot = output_value.history
+            valid = snapshot == history[:len(snapshot)] and output_value == visible(input_value.game_id, snapshot)
             if name is Tool.REVEAL_CELL:
-                valid = valid and bool(history) and history[-1].row == input_value.row and history[-1].col == input_value.col
+                valid = valid and bool(snapshot) and snapshot[-1].row == input_value.row and snapshot[-1].col == input_value.col
         return result(valid, 'output matches replay' if valid else 'output does not match replay')
     except (ValueError, TypeError, AttributeError, KeyError, OSError):
         return result(False, 'invalid or missing game evidence')
