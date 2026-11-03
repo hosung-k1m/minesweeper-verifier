@@ -1,7 +1,7 @@
 _ > nanoagent.plugin.v0001.ManifestConfig:
 id: minesweeper-verifier
 name: Minesweeper
-version: 0.1.9
+version: 0.1.10
 status: ready
 spec: nanoagent.plugin/v0001
 runtime > nanoagent.plugin.v0001.RuntimeConfig:
