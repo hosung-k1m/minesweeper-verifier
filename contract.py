@@ -44,7 +44,7 @@ class BoardOutput(Output):
 
 @dataclass
 class PlayInput(Output):
-    pass
+    order: Annotated[list[int], 'Fresh reveal order, containing each covered cell index once']
 
 @dataclass
 class PlayOutput(Output):
@@ -56,6 +56,7 @@ class PlayOutput(Output):
 class CompareInput(Output):
     game_id: Annotated[str, 'Identifier of the completed AI game']
     history: Annotated[list[Move], 'Human explicit reveals in order']
+    ai_history: Annotated[list[Move], 'Exact opponent reveals from this round’s play-game result']
 
 @dataclass
 class PlayerResult(Output):

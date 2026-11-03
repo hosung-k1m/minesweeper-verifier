@@ -21,13 +21,13 @@ def test_tools_and_task_reject_forgery(tmp_path):
     assert verify_output('reveal_cell', move, board, tmp_path)['valid']
     with pytest.raises(ValueError):
         reveal_cell(RevealInput('test', 1, 1), tmp_path)
-    human = CompareInput('test', [Move(0, 3)])
+    human = CompareInput('test', [Move(0, 3)], board.history)
     compared = compare_scores(human, tmp_path)
     assert verify_output('compare_scores', human, compared, tmp_path)['valid']
     assert not verify_task('compare-scores', human, replace(compared, game_comparison='ai'), None, tmp_path)['valid']
-    assert not verify_task('compare-scores', CompareInput('missing', human.history), compared, None, tmp_path)['valid']
+    assert not verify_task('compare-scores', replace(human, ai_history=[]), compared, None, tmp_path)['valid']
     with pytest.raises(ValueError):
-        compare_scores(CompareInput('test', []), tmp_path)
+        compare_scores(replace(human, history=[]), tmp_path)
 
 
 def test_board_responses_verify_after_later_reveals(tmp_path):
@@ -69,18 +69,25 @@ def test_every_guess_finishes_in_two_turn_calls(tmp_path):
 
 
 def test_play_game_allocates_and_verifies_complete_games(tmp_path):
-    request = PlayInput()
+    request = PlayInput([8, 13, 18, 14, 22, 23, 4, 19, 3, 9, 17, 24])
+    other = PlayInput([3, *[cell for cell in request.order if cell != 3]])
+    assert not verify_input('play_game', PlayInput(request.order[:-1]))['valid']
     get_board(GameInput('game-001'), tmp_path)
     first = play_game(request, tmp_path)
-    second = play_game(request, tmp_path)
+    second = play_game(other, tmp_path)
+    assert first.status == 'won'
+    assert second.status == 'lost'
+    assert sorted(path.name for path in tmp_path.iterdir()) == ['game-game-001.json']
+    independent = tmp_path / 'independent'
+    independent.mkdir()
     assert first.game_id != second.game_id
-    for output in (first, second):
+    for plan, output in ((request, first), (other, second)):
         assert output.status in ('won', 'lost')
-        verdict = verify_task('play-game', request, output, None, tmp_path)
-        assert verdict['valid'] and verdict == verify_task('play-game', request, output, None, tmp_path)
-        assert not verify_output('play_game', request, replace(output, history=output.history[:-1]), tmp_path)['valid']
-        assert not verify_output('play_game', request, replace(output, status='playing'), tmp_path)['valid']
-        compared = compare_scores(CompareInput(output.game_id, [Move(0, 3)]), tmp_path)
+        verdict = verify_task('play-game', plan, output, None, tmp_path)
+        assert verdict['valid'] and verdict == verify_task('play-game', plan, output, None, tmp_path)
+        assert not verify_output('play_game', plan, replace(output, history=output.history[:-1]), tmp_path)['valid']
+        assert not verify_output('play_game', plan, replace(output, status='playing'), tmp_path)['valid']
+        compared = compare_scores(CompareInput(output.game_id, [Move(0, 3)], output.history), independent)
         assert compared.ai.status == output.status
     assert get_board(GameInput('game-001'), tmp_path).history == []
 

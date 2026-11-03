@@ -1,11 +1,14 @@
 from contract import Tool, Task, GameInput, RevealInput, TurnInput, CompareInput, BoardOutput, PlayInput, PlayOutput, CompareOutput
-from .checks import result, valid_id, load, replay, visible, play_history, opponent_game, comparison, MINES, OPENING
+from .checks import result, valid_id, load, replay, visible, play_history, play_order, comparison, MINES, OPENING
 
 def verify_input(tool, value):
     try:
         name = Tool(tool)
         if name is Tool.PLAY_GAME:
-            return result(True, 'input is valid') if isinstance(value, PlayInput) else result(False, 'expected an empty game request')
+            if not isinstance(value, PlayInput):
+                return result(False, 'expected a reveal order')
+            play_order(value.order)
+            return result(True, 'input is valid')
         expected = {Tool.GET_BOARD: GameInput, Tool.REVEAL_CELL: RevealInput, Tool.PLAY_TURN: TurnInput, Tool.COMPARE_SCORES: CompareInput}[name]
         if not isinstance(value, expected) or not valid_id(value.game_id):
             return result(False, 'invalid game input or identifier')
@@ -16,6 +19,7 @@ def verify_input(tool, value):
                 return result(False, 'coordinates must be between 0 and 4')
         if name is Tool.COMPARE_SCORES:
             replay(value.history)
+            replay(value.ai_history)
         return result(True, 'input is valid')
     except (ValueError, TypeError, AttributeError):
         return result(False, 'invalid game input')
@@ -28,18 +32,17 @@ def verify_output(tool, input_value, output_value, workspace):
         if name is Tool.PLAY_GAME:
             if not isinstance(output_value, PlayOutput):
                 return result(False, 'invalid game output')
-            history, status = opponent_game(output_value.game_id)
-            valid = (
-                output_value.history == history == load(workspace, output_value.game_id)
-                and output_value.status == status
-            )
+            history, status = play_order(input_value.order)
+            valid = valid_id(output_value.game_id) and output_value.history == history and output_value.status == status
             if valid:
                 return result(True, 'completed game verified', mines=[list(cell) for cell in sorted(MINES)], opening=list(OPENING))
             return result(False, 'output does not match the recorded opponent game')
-        history = load(workspace, input_value.game_id)
         if name is Tool.COMPARE_SCORES:
-            valid = isinstance(output_value, CompareOutput) and output_value == comparison(input_value.game_id, input_value.history, history)
+            valid = isinstance(output_value, CompareOutput) and output_value == comparison(
+                input_value.game_id, input_value.history, input_value.ai_history
+            )
         else:
+            history = load(workspace, input_value.game_id)
             if not isinstance(output_value, BoardOutput):
                 return result(False, 'output does not match replay')
             # Later reveals can be saved before the host verifies this response.

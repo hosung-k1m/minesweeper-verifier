@@ -1,7 +1,7 @@
 _ > nanoagent.plugin.v0001.ManifestConfig:
 id: minesweeper-verifier
 name: Minesweeper
-version: 0.1.6
+version: 0.1.7
 status: ready
 spec: nanoagent.plugin/v0001
 runtime > nanoagent.plugin.v0001.RuntimeConfig:
@@ -20,26 +20,34 @@ tools > dict[contract.Tool, nanoagent.plugin.v0001.ToolConfig]:
   play_turn:
     description: Start with guess null, or guess one covered cell. Reveals all guaranteed safe cells and returns the board.
   play_game:
-    description: Play one complete game using the automated opponent and assign a fresh game ID.
+    description: Execute the AI’s reveal order on a fresh board and return the completed game.
   compare_scores:
     description: Verify and compare completed human and AI games
 tasks > dict[contract.Task, nanoagent.plugin.v0001.TaskConfig]:
   play-game:
-    description: >-
-      Default action on every user message in Minesweeper. Unless the user explicitly
-      asks to compare a finished round, asks a question about the game, or asks to stop,
-      call this immediately with {} to play a fresh round. This includes greetings, “yes”,
-      “again”, and repeated requests in the same session. Never ask whether to play again.
-      After success, say “Your new board is ready in the Result tab.” The returned status
-      belongs to the opponent. Keep its outcome, mine locations, game ID, and score out
-      of the chat before the player has played.
+    description: |-
+      Default action for a new chat message, including “play the game” and “play again”.
+      Start a fresh round every time. For comparison requests, use compare-scores instead.
+      You are the opponent. Reason from only this round’s opening clues and choose
+      the entire reveal order yourself:
+      0 0 1 ? ?
+      0 0 1 ? ?
+      0 1 1 ? ?
+      0 1 ? ? ?
+      0 1 ? ? ?
+      Call play-game once with order containing each of these cell indexes exactly once:
+      3, 4, 8, 9, 13, 14, 17, 18, 19, 22, 23, 24. Index is 5 × row + column, zero-based.
+      Put cells you think are safest first. Make your own guesses when clues are ambiguous.
+      The tool executes your choices in order until the game ends.
+      After success, say “Your new board is ready in the Result tab.” Keep the opponent's
+      outcome, history, score, and mine locations out of the chat until comparison.
     runner: tool
     tools: [play_game]
     reference: null
     instructions: Play and verify the opponent's game before opening the human board.
   compare-scores:
-    description: Compare a completed human game to the AI game for the given game_id and reveal history.
+    description: Compare a finished human round with the AI round. Copy the game_id, history, and ai_history supplied by the Result tab exactly.
     runner: tool
     tools: [compare_scores]
     reference: null
-    instructions: Verify and compare the games using the supplied game_id and human reveal history.
+    instructions: Replay and compare the two supplied reveal histories.

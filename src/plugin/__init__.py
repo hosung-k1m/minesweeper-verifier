@@ -1,7 +1,7 @@
 import json
 from dataclasses import asdict
 from uuid import uuid4
-from verifier.checks import valid_id, load, visible, replay, comparison, play_history, opponent_game
+from verifier.checks import valid_id, load, visible, replay, comparison, play_history, play_order
 from contract import Move, PlayOutput
 
 def path_for(workspace, game_id):
@@ -40,11 +40,9 @@ def play_turn(value, workspace):
 
 def play_game(value, workspace):
     game_id = uuid4().hex
-    history, status = opponent_game(game_id)
-    with path_for(workspace, game_id).open('x', encoding='utf-8') as file:
-        json.dump([asdict(move) for move in history], file)
+    history, status = play_order(value.order)
     return PlayOutput(game_id, history, status)
 
 
 def compare_scores(value, workspace):
-    return comparison(value.game_id, value.history, load(workspace, value.game_id))
+    return comparison(value.game_id, value.history, value.ai_history)

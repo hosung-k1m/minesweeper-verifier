@@ -4,9 +4,9 @@ Play a fixed 5×5 Minesweeper puzzle after the automated opponent has played it.
 
 ## Tools
 
-`get_board` and `reveal_cell` expose only visible clues. `play_turn` reveals guaranteed safe cells and accepts a guess. `play_game` runs the automated opponent to completion. `compare_scores` replays both games and calculates results. Each game uses a unique identifier and the opponent’s history is stored in the plugin workspace.
+`play_game` executes a fresh reveal order chosen by the AI from the opening clues. It stops at a mine or when the board is clear. `compare_scores` replays the two histories from the current round and calculates their scores. Neither task reads or writes saved game files. The separate `get_board`, `reveal_cell`, and `play_turn` tools support inspecting and stepping through a game.
 
-`play-game` runs the automated opponent in one tool call. It opens provably safe cells, then chooses a lowest-risk guess from the visible clues, using a fresh game ID to break ties. All reveals count toward the opponent's score. `compare-scores` checks the human history against the recorded opponent game. Scores count safe cells revealed including the opening. Move accuracy counts explicit choices with the lowest immediate mine probability among all placements consistent with visible clues. An accuracy with no decisions is N/A.
+`play-game` starts a fresh round. `compare-scores` compares the finished games. Scores count safe cells revealed, including the opening. Move accuracy counts choices with the lowest immediate mine probability among all placements consistent with the visible clues.
 
 ## Layout
 
